@@ -1,0 +1,186 @@
+name: Queen problem solutions
+on:
+  workflow_dispatch:
+    inputs:
+      maximum_n:
+        description: Solutions for N from 0 to maximum_n (both inclusive).
+        default: 10
+        type: number
+      run_cpp_solution:
+        description: Run the C++ solution.
+        default: true
+        type: boolean
+      run_python_solution:
+        description: Run the Python solution.
+        default: true
+        type: boolean
+      run_rust_solution:
+        description: Run the Rust solution.
+        default: true
+        type: boolean
+
+jobs:
+  run-cpp-solution:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.run_cpp_solution }}
+    steps:
+      - name: checkout solutions
+        uses: actions/checkout@v4
+        with:
+          ref: develop/queen
+
+      - name: setup clang
+        uses: egor-tensin/setup-clang@v1
+        with:
+          version: 15
+
+      - name: build and run solution
+        run: |
+          clang++ -std=c++20 -Wall -O3 ./c++/queen.cc -o ./c++/queen
+          for (( n = 0; n <= ${{ inputs.maximum_n }}; n++)); do
+            if command_output=$(scripts/execution_time.bash ./c++/queen $n); then
+              execution_time=$(echo "$command_output" | tail -n 1)
+              printf "%s,%d,%d\n" "C++" "$n" "$execution_time" >> cpp_times.csv
+            fi
+          done
+
+      - name: share result artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpp_times
+          path: cpp_times.csv
+
+  run-python-solution:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.run_python_solution }}
+    steps:
+      - name: checkout solutions
+        uses: actions/checkout@v4
+        with:
+          ref: develop/queen
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '>=3.6'
+
+      - name: run solution
+        shell: bash
+        run: |
+          for (( n = 0; n <= ${{ inputs.maximum_n }}; n++)); do
+            if command_output=$(scripts/execution_time.bash \
+                python ./python/queen.py -n $n); then
+              execution_time=$(echo "$command_output" | tail -n 1)
+              printf "%s,%d,%d\n" "Python" "$n" "$execution_time" >> python_times.csv
+            fi
+          done
+
+      - name: share result artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python_times
+          path: python_times.csv
+
+  run-rust-solution:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.run_rust_solution }}
+    steps:
+      - name: checkout solutions
+        uses: actions/checkout@v4
+        with:
+          ref: develop/queen
+
+      - name: setup rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1.9.0
+
+      - name: build and run solution
+        run: |
+          rustc -O ./rust/queen.rs -o ./rust/queen
+          for (( n = 0; n <= ${{ inputs.maximum_n }}; n++)); do
+            if command_output=$(scripts/execution_time.bash ./rust/queen $n); then
+              execution_time=$(echo "$command_output" | tail -n 1)
+              printf "%s,%d,%d\n" "Rust" "$n" "$execution_time" >> rust_times.csv
+            fi
+          done
+
+      - name: share result artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust_times
+          path: rust_times.csv
+
+  update-artifacts:
+    needs:
+      - run-cpp-solution
+      - run-python-solution
+      - run-rust-solution
+    if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout artifacts
+        uses: actions/checkout@v4
+        with:
+          ref: artifacts
+
+      - name: checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+          sparse-checkout: scripts
+
+      - name: fetch cpp results
+        if: ${{ inputs.run_cpp_solution }}
+        uses: actions/download-artifact@v4
+        with:
+          name: cpp_times
+
+      - name: fetch python results
+        if: ${{ inputs.run_python_solution }}
+        uses: actions/download-artifact@v4
+        with:
+          name: python_times
+
+      - name: fetch rust results
+        if: ${{ inputs.run_rust_solution }}
+        uses: actions/download-artifact@v4
+        with:
+          name: rust_times
+
+      - name: append results
+        run: |
+          if [ -f cpp_times.csv ]; then
+            cat cpp_times.csv >> artifacts/queen.csv
+          fi
+          if [ -f python_times.csv ]; then
+            cat python_times.csv >> artifacts/queen.csv
+          fi
+          if [ -f rust_times.csv ]; then
+            cat rust_times.csv >> artifacts/queen.csv
+          fi
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '>=3.6'
+
+      - name: update plots
+        shell: bash
+        run: |
+          python -m pip install pandas matplotlib
+          python ./main/scripts/plot.py \
+              --input-csv-file artifacts/queen.csv \
+              --output-svg-files-path artifacts/
+
+      - name: compute run timestamp
+        shell: bash
+        id: commit-timestamp
+        run: |
+          echo "timestamp=$(date +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
+      - name: commit updated results
+        uses: stefanzweifel/git-auto-commit-action@v5.0.1
+        with:
+          commit_message: updated results at ${{ steps.commit-timestamp.outputs.timestamp }}
+          branch: artifacts
+          file_pattern: artifacts/*
