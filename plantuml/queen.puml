@@ -1,0 +1,170 @@
+'Solves the N-Queen problem and draws all the solutions!
+'
+'Practically one would instead solve the problem in a conventional programming
+'language (such as C++, Rust, Python, ...) and use PlantUML only to draw the solutions.
+'However, here I use PlantUML itself to solve the problem too because:
+'1. This is a fun project and I want to have fun. This is not production code that I
+'   write for professional reasons.
+'2. To demonstrate the capability of PlantUML (specifically its preprocessor) as a
+'   full fledged Turing complete language (a graphical language, if you will!).
+
+@startuml queen##input_n
+
+!function $get_right_diagonal($row, $column)
+    !return $row + $column
+!endfunction
+
+!function $get_left_diagonal_offset()
+    !return $n - 1
+!endfunction
+
+!function $get_left_diagonal($row, $column)
+    !return ($row - $column) + $get_left_diagonal_offset()
+!endfunction
+
+!function $to_variable($array_name, $index)
+'This helper function "hacks" an array.
+'As plantuml preprocessor does not provide any array or dictionary data structure, we
+'simulate it using string concatenation. For each array and index, we create a variable
+'and use that as the array element.
+    !return %string($array_name + $index)
+!endfunction
+
+!function $get($array_name, $index)
+'This helper function gets the value of an array element.
+    !return %get_variable_value($to_variable($array_name, $index))
+!endfunction
+
+!procedure $set($array_name, $index, $value)
+'This helper function sets the value of an array element.
+    %set_variable_value($to_variable($array_name, $index), $value)
+!endprocedure
+
+!function $is_odd($number)
+'As PlantUML currently does not provide a modulo function or operator, we use another
+'"hack" to check if a number is odd.
+'Perform integer division by 2, then multiply by 2. Due to truncation, the value will
+'not be equal to the starting number if it is odd.
+    !return ($number / 2 * 2) != $number
+!endfunction
+
+!function $make_chessboard()
+    !$diagram = ""
+    !$row = 0
+    'The below two while loops "hack" a table to draw a chessboard.
+    !while $row < $n
+        !$column = 0
+        !while $column < $n
+            !$diagram = $diagram + "| "
+
+            'Use lichess's default chessboard colours. Why? Because lichess is
+            'open source. https://github.com/lichess-org/lichobile/blob/master/www/images/board/svg/brown.svg?short_path=afac3d9
+            !if $is_odd($row + $column)
+                !$diagram = $diagram + "<#b58863>"
+            !else
+                !$diagram = $diagram + "<#f0d9b5>"
+            !endif
+
+            'Due to the Pigeonhole Principle, a Queen problem solution has a Queen in
+            'exactly one column of every row. So place a Queen in the diagram in that
+            'column and leave the others blank.
+            !if $get("placed_queen_id", $row) == $column
+                !$diagram = $diagram + "♛"
+            !endif
+            !$column = $column + 1
+        !endwhile
+        !$diagram = $diagram + " |" + %newline()
+        !$row = $row + 1
+    !endwhile
+    !return $diagram
+!endfunction
+
+!function $is_occupied($row, $column)
+    !return $get("is_occupied_column", $column) == %true() \
+        || $get("is_occupied_right_diagonal", $get_right_diagonal($row, $column)) == %true() \
+        || $get("is_occupied_left_diagonal", $get_left_diagonal($row, $column)) == %true()
+!endfunction
+
+!procedure $update_occupancy($row, $column, $status)
+    $set("is_occupied_column", $column, $status)
+    $set("is_occupied_right_diagonal", $get_right_diagonal($row, $column), $status)
+    $set("is_occupied_left_diagonal", $get_left_diagonal($row, $column), $status)
+!endprocedure
+
+!procedure $draw_solution()
+'Draw the solutions and arrange them beautifully, ... that is, as beautifully as
+'PlantUML supports.
+    '"Hack" a class diagram such that the solution count is the class name and a
+    'chessboard (showing the solution) is the class field!
+    class **$solution_counter** {
+        $make_chessboard()
+    }
+    !$solution_counter = $solution_counter + 1
+!endprocedure
+
+!procedure $place_nth_queen($row)
+    !$column = 0
+    !while $column < $n
+        'For the given row, iterate over the columns to try placing a Queen.
+        !if $is_occupied($row, $column) == %false()
+            $set("placed_queen_id", $row, $column)
+            $update_occupancy($row, $column, %true())
+
+            !if ($row + 1) < $n
+                'Recurse to try placing a Queen in the next row.
+                $place_nth_queen($row + 1)
+            !else
+                'When we reach here, we have successfully placed a Queen in each row
+                'without conflict. We have found a solution, so we draw it!
+                $draw_solution()
+            !endif
+
+            'We have either found a solution or failed to place a Queen in one of the
+            'lower rows. So we clear our state arrays to search for the next solution.
+            $update_occupancy($row, $column, %false())
+        !endif
+        !$column = $column + 1
+    !endwhile
+!endprocedure
+
+!function $get_number_of_diagonals()
+    !return $n * 2 - 1
+!endfunction
+
+!procedure $solve_queen($input_n)
+    !global $solution_counter = 0
+    !global $n = $input_n
+
+    'Initialize the state arrays.
+    'PlantUML does not support for loop (except for JSON data), so use while loop.
+    'We need two while loops, one to initialize the state arrays of size n, and the
+    'other below for state arrays of size 'number_of_diagonals'.
+    'placed_queen_id notes for each row, the column number in which a Queen is placed.
+    'is_occupied_* note if a column, right diagonal and left diagonal are occupied.
+    !$index = 0
+    !while $index < $n
+        $set("placed_queen_id", $index, 0)
+        $set("is_occupied_column", $index, %false())
+        !$index = $index + 1
+    !endwhile
+
+    !$index = 0
+    !$number_of_diagonals = $get_number_of_diagonals()
+    !while $index < $number_of_diagonals
+        $set("is_occupied_right_diagonal", $index, %false())
+        $set("is_occupied_left_diagonal", $index, %false())
+        !$index = $index + 1
+    !endwhile
+
+    'As described in $draw_solution() function, we "hack" a class diagram by having the
+    'solution count as the class name. The circle would make the hack look ugly. ^_^
+    hide circle
+    title Solutions to the $n-Queens problem
+    $place_nth_queen(0)
+!endprocedure
+
+'input_n is the number of Queens and will be assigned via CLI.
+!input_n ?= 8
+$solve_queen(%intval(input_n))
+
+@enduml
