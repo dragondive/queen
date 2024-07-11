@@ -94,27 +94,31 @@ fi
 
 if [ $IS_EXECUTE -eq 1 ];
 then
+    version_tag=$(git describe --tags --abbrev=0 develop/queen)
     for ((n = 0; n <= $MAXIMUM_N; n++))
     do
         start_time=$(date +%s%3N)
         ./c++/queen $n
         if [ $? -eq 0 ]; then
             end_time=$(date +%s%3N)
-            printf "C++,%d,%d\n" "$n" "$(($end_time - $start_time))" >> $RESULTS_FILE
+            printf "C++ ($version_tag),%d,%d\n" \
+                "$n" "$(($end_time - $start_time))" >> $RESULTS_FILE
         fi
 
         start_time=$(date +%s%3N)
         ./rust/queen $n
         if [ $? -eq 0 ]; then
             end_time=$(date +%s%3N)
-            printf "Rust,%d,%d\n" "$n" "$(($end_time - $start_time))" >> $RESULTS_FILE
+            printf "Rust ($version_tag),%d,%d\n" \
+                "$n" "$(($end_time - $start_time))" >> $RESULTS_FILE
         fi
 
         start_time=$(date +%s%3N)
         python3 ./python/queen.py -n $n
         if [ -$? -eq 0 ]; then
             end_time=$(date +%s%3N)
-            printf "Python,%d,%d\n" "$n" "$(($end_time - $start_time))" >> $RESULTS_FILE
+            printf "Python ($version_tag),%d,%d\n" \
+                "$n" "$(($end_time - $start_time))" >> $RESULTS_FILE
         fi
     done
 fi
