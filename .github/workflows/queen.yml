@@ -18,6 +18,10 @@ on:
         description: Run the Rust solution.
         default: true
         type: boolean
+      run_plantuml_solution:
+        description: Run the PlantUML solution.
+        default: true
+        type: boolean
 
 jobs:
   checkout-scripts:
@@ -177,6 +181,51 @@ jobs:
           name: rust_times
           path: rust_times.csv
 
+  run-plantuml-solution:
+    runs-on: ubuntu-latest
+    needs:
+      - checkout-scripts
+      - compute-latest-solution-tag
+    if: ${{ inputs.run_plantuml_solution }}
+    steps:
+      - name: checkout solutions
+        uses: actions/checkout@v4
+        with:
+          ref: develop/queen
+
+      - name: fetch scripts
+        uses: actions/download-artifact@v4
+        with:
+          name: scripts
+          path: scripts
+
+      - name: setup plantuml
+        run: |
+          sudo apt-get install -y graphviz
+          wget https://github.com/plantuml/plantuml/releases/download/v1.2024.6/plantuml-mit-1.2024.6.jar \
+              -O plantuml.jar
+
+      - name: run solution
+        run: |
+          chmod +x ./scripts/execution_time.bash
+          for (( n = 0; n <= ${{ inputs.maximum_n }}; n++)); do
+            if command_output=$(./scripts/execution_time.bash \
+                java -jar plantuml.jar -tsvg -Dinput_n=$n ./plantuml/queen.puml); then
+              execution_time=$(echo "$command_output" | tail -n 1)
+              printf "%s,%d,%d\n" \
+                  "PlantUML (${{ needs.compute-latest-solution-tag.outputs.tag }})" \
+                  "$n" "$execution_time" >> plantuml_times.csv
+            fi
+          done
+
+      - name: share result artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: plantuml_times
+          path: |
+            plantuml_times.csv
+            plantuml/queen*.svg
+
   update-artifacts:
     runs-on: ubuntu-latest
     needs:
@@ -184,6 +233,7 @@ jobs:
       - run-cpp-solution
       - run-python-solution
       - run-rust-solution
+      - run-plantuml-solution
     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') }}
     steps:
       - name: checkout artifacts
@@ -215,6 +265,12 @@ jobs:
         with:
           name: rust_times
 
+      - name: fetch plantuml results
+        if: ${{ inputs.run_plantuml_solution }}
+        uses: actions/download-artifact@v4
+        with:
+          name: plantuml_times
+
       - name: append results
         run: |
           if [ -f cpp_times.csv ]; then
@@ -225,6 +281,9 @@ jobs:
           fi
           if [ -f rust_times.csv ]; then
             cat rust_times.csv >> artifacts/queen.csv
+          fi
+          if [ -f plantuml_times.csv ]; then
+            cat plantuml_times.csv >> artifacts/queen.csv
           fi
 
       - name: setup python
@@ -239,6 +298,11 @@ jobs:
           python ./scripts/plot.py \
               --input-csv-file artifacts/queen.csv \
               --output-svg-files-path artifacts/
+
+      - name: copy plantuml diagrams
+        shell: bash
+        run: |
+          cp plantuml/queen*.svg artifacts/plantuml/
 
       - name: compute run timestamp
         shell: bash
