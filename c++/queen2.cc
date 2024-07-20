@@ -47,40 +47,18 @@ private:
 
     void solve()
     {
-        // auto state = SolverState::BEGIN;
-        // auto state = SolverState::NEXT_COLUMN;
         auto state = SolverState::PLACE_QUEEN;
         int current_column{0};
         int current_row{0};
 
-        do
+        while(current_column >= 0)
         {
             switch(state)
             {
-            // case SolverState::BEGIN:
-            //     current_column = -1;
-            //     current_row = -1;
-            //     state = SolverState::NEXT_COLUMN;
-            // break;
-            // case SolverState::NEXT_COLUMN:
-            //     ++current_column;
-            //     current_row = 0;
-            //     if (current_column < N)
-            //     {
-            //         state = SolverState::PLACE_QUEEN;
-            //     }
-            //     else
-            //     {
-            //         // state = SolverState::FOUND_SOLUTION;
-            //         print_solution();
-            //         state = SolverState::PREVIOUS_COLUMN;
-            //     }
-            // break;
             case SolverState::PLACE_QUEEN:
                 if (!is_occupied(current_row, current_column))
                 {
                     place_queen(current_row, current_column);
-                    // state = SolverState::NEXT_COLUMN;
                     ++current_column;
                     current_row = 0;
                     if (current_column == N)
@@ -94,10 +72,6 @@ private:
                     ++current_row;
                     if (current_row == N)
                     {
-                    //     state = SolverState::PLACE_QUEEN;
-                    // }
-                    // else
-                    // {
                         state = SolverState::PREVIOUS_COLUMN;
                     }
                 }
@@ -106,31 +80,16 @@ private:
                 --current_column;
                 if (current_column >= 0)
                 {
-                    // state = SolverState::END;
-                // }
-                // else
-                // {
                     current_row = remove_queen(current_column);
                     ++current_row;
                     if (current_row < N)
                     {
                         state = SolverState::PLACE_QUEEN;
                     }
-                    else
-                    {
-                        state = SolverState::PREVIOUS_COLUMN;
-                    }
                 }
             break;
-            // case SolverState::FOUND_SOLUTION:
-            //     print_solution();
-            //     state = SolverState::PREVIOUS_COLUMN;
-            // break;
-            // case SolverState::END:
-            // break;
             }
         }
-        while(current_column >= 0);
     }
 
     void place_queen(int row, int column)
@@ -142,49 +101,10 @@ private:
     int remove_queen(int column)
     {
         auto current_row = placed_queen_id[column];
-        // placed_queen_id[column] = -1;
         update_occupancy(current_row, column, OccupancyStatus::FREE);
         return current_row;
     }
-    // void place_Nth_queen(int row)
-    // {
-    //     // We attempt to place a Queen in an available column on the given row.
-    //     // Then we call this function recursively to attempt to place the Queen
-    //     // in the next row. We attempt this iteratively over all the columns.
-    //     for (auto column = 0; column < N; ++column)
-    //     {
-    //         // When a Queen is placed, the column where it was placed is marked as
-    //         // occupied because we cannot place another Queen in the same column.
-    //         // Likewise, the two diagonals on which the Queen is placed are also marked
-    //         // as occupied.
-    //         //
-    //         // If the position where we now attempt to place the Queen is not occupied
-    //         // due to any previous Queen, then we place the Queen there.
-    //         if (!is_occupied(row, column))
-    //         {
-    //             placed_queen_id[row] = column;
-    //             update_occupancy(row, column, OccupancyStatus::OCCUPIED);
-
-    //             if ((row + 1) < N)
-    //             {
-    //                 place_Nth_queen(row + 1);
-    //             }
-    //             else
-    //             {
-    //                 // We have placed N queens, so we have found a solution.
-    //                 print_solution();
-    //             }
-
-    //             // We are done with our attempt to place a Queen in this position. We
-    //             // have either found a solution here or failed to place a Queen in one
-    //             // of the lower rows. In either case, we remove the Queen from this
-    //             // position to continue the search for the next solution. Hence, we
-    //             // mark the column and the two diagonals as free again.
-    //             update_occupancy(row, column, OccupancyStatus::FREE);
-    //         }
-    //     }
-    // }
-
+    
     bool is_occupied(int row, int column) const
     {
         return is_occupied_row[row] == OccupancyStatus::OCCUPIED
