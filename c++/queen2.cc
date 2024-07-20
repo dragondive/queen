@@ -8,8 +8,8 @@ class QueenProblemSolver
 public:
     QueenProblemSolver(int N_) 
         : N{N_}
-        , number_of_diagonals{get_number_of_diagonals()}
-        , left_diagonal_offset{get_left_diagonal_offset()}
+        , number_of_diagonals{N * 2 - 1}
+        , left_diagonal_offset{N - 1}
     {
         if (N_ <= 0) return;
         placed_queen_id.resize(N, -1);
@@ -20,7 +20,7 @@ public:
     }
 
 private:
-    enum class OccupancyStatus
+    enum class OccupancyStatus : bool
     {
         FREE,
         OCCUPIED,
@@ -48,11 +48,10 @@ private:
     void solve()
     {
         auto state = SolverState::BEGIN;
-        auto count = 0;
         int current_column;
         int current_row;
 
-        while(count < 999999999)
+        while(state != SolverState::END)
         {
             switch(state)
             {
@@ -94,26 +93,31 @@ private:
             break;
             case SolverState::PREVIOUS_COLUMN:
                 --current_column;
-                current_row = remove_queen(current_row, current_column);
-                ++current_row;
-                if (current_row < N)
+                if (current_column < 0)
                 {
-                    state = SolverState::PLACE_QUEEN;
+                    state = SolverState::END;
                 }
                 else
                 {
-                    state = SolverState::PREVIOUS_COLUMN;
+                    current_row = remove_queen(current_row, current_column);
+                    ++current_row;
+                    if (current_row < N)
+                    {
+                        state = SolverState::PLACE_QUEEN;
+                    }
+                    else
+                    {
+                        state = SolverState::PREVIOUS_COLUMN;
+                    }
                 }
             break;
             case SolverState::FOUND_SOLUTION:
-                std::cout << "found_solution!! ";
                 print_solution();
                 state = SolverState::PREVIOUS_COLUMN;
             break;
             case SolverState::END:
             break;
             }
-            ++count;
         }
     }
 
@@ -126,7 +130,7 @@ private:
     int remove_queen(int row, int column)
     {
         auto current_row = placed_queen_id[column];
-        placed_queen_id[column] = -1;
+        // placed_queen_id[column] = -1;
         update_occupancy(current_row, column, OccupancyStatus::FREE);
         return current_row;
     }
