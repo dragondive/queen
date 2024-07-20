@@ -28,12 +28,12 @@ private:
 
     enum class SolverState
     {
-        BEGIN,
+        // BEGIN,
         NEXT_COLUMN,
         PLACE_QUEEN,
         PREVIOUS_COLUMN,
-        FOUND_SOLUTION,
-        END,
+        // FOUND_SOLUTION,
+        // END,
     };
 
 private:
@@ -47,19 +47,20 @@ private:
 
     void solve()
     {
-        auto state = SolverState::BEGIN;
-        int current_column;
-        int current_row;
+        // auto state = SolverState::BEGIN;
+        auto state = SolverState::NEXT_COLUMN;
+        int current_column{-1};
+        int current_row{-1};
 
-        while(state != SolverState::END)
+        do
         {
             switch(state)
             {
-            case SolverState::BEGIN:
-                current_column = -1;
-                current_row = -1;
-                state = SolverState::NEXT_COLUMN;
-            break;
+            // case SolverState::BEGIN:
+            //     current_column = -1;
+            //     current_row = -1;
+            //     state = SolverState::NEXT_COLUMN;
+            // break;
             case SolverState::NEXT_COLUMN:
                 ++current_column;
                 current_row = 0;
@@ -69,7 +70,9 @@ private:
                 }
                 else
                 {
-                    state = SolverState::FOUND_SOLUTION;
+                    // state = SolverState::FOUND_SOLUTION;
+                    print_solution();
+                    state = SolverState::PREVIOUS_COLUMN;
                 }
             break;
             case SolverState::PLACE_QUEEN:
@@ -93,13 +96,13 @@ private:
             break;
             case SolverState::PREVIOUS_COLUMN:
                 --current_column;
-                if (current_column < 0)
+                if (current_column >= 0)
                 {
-                    state = SolverState::END;
-                }
-                else
-                {
-                    current_row = remove_queen(current_row, current_column);
+                    // state = SolverState::END;
+                // }
+                // else
+                // {
+                    current_row = remove_queen(current_column);
                     ++current_row;
                     if (current_row < N)
                     {
@@ -111,14 +114,15 @@ private:
                     }
                 }
             break;
-            case SolverState::FOUND_SOLUTION:
-                print_solution();
-                state = SolverState::PREVIOUS_COLUMN;
-            break;
-            case SolverState::END:
-            break;
+            // case SolverState::FOUND_SOLUTION:
+            //     print_solution();
+            //     state = SolverState::PREVIOUS_COLUMN;
+            // break;
+            // case SolverState::END:
+            // break;
             }
         }
+        while(current_column >= 0);
     }
 
     void place_queen(int row, int column)
@@ -127,7 +131,7 @@ private:
         update_occupancy(row, column, OccupancyStatus::OCCUPIED);
     }
 
-    int remove_queen(int row, int column)
+    int remove_queen(int column)
     {
         auto current_row = placed_queen_id[column];
         // placed_queen_id[column] = -1;
