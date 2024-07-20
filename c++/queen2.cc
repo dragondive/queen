@@ -29,7 +29,7 @@ private:
     enum class SolverState
     {
         // BEGIN,
-        NEXT_COLUMN,
+        // NEXT_COLUMN,
         PLACE_QUEEN,
         PREVIOUS_COLUMN,
         // FOUND_SOLUTION,
@@ -48,9 +48,10 @@ private:
     void solve()
     {
         // auto state = SolverState::BEGIN;
-        auto state = SolverState::NEXT_COLUMN;
-        int current_column{-1};
-        int current_row{-1};
+        // auto state = SolverState::NEXT_COLUMN;
+        auto state = SolverState::PLACE_QUEEN;
+        int current_column{0};
+        int current_row{0};
 
         do
         {
@@ -61,35 +62,42 @@ private:
             //     current_row = -1;
             //     state = SolverState::NEXT_COLUMN;
             // break;
-            case SolverState::NEXT_COLUMN:
-                ++current_column;
-                current_row = 0;
-                if (current_column < N)
-                {
-                    state = SolverState::PLACE_QUEEN;
-                }
-                else
-                {
-                    // state = SolverState::FOUND_SOLUTION;
-                    print_solution();
-                    state = SolverState::PREVIOUS_COLUMN;
-                }
-            break;
+            // case SolverState::NEXT_COLUMN:
+            //     ++current_column;
+            //     current_row = 0;
+            //     if (current_column < N)
+            //     {
+            //         state = SolverState::PLACE_QUEEN;
+            //     }
+            //     else
+            //     {
+            //         // state = SolverState::FOUND_SOLUTION;
+            //         print_solution();
+            //         state = SolverState::PREVIOUS_COLUMN;
+            //     }
+            // break;
             case SolverState::PLACE_QUEEN:
                 if (!is_occupied(current_row, current_column))
                 {
                     place_queen(current_row, current_column);
-                    state = SolverState::NEXT_COLUMN;
+                    // state = SolverState::NEXT_COLUMN;
+                    ++current_column;
+                    current_row = 0;
+                    if (current_column == N)
+                    {
+                        print_solution();
+                        state = SolverState::PREVIOUS_COLUMN;
+                    }
                 }
                 else
                 {
                     ++current_row;
-                    if (current_row < N)
+                    if (current_row == N)
                     {
-                        state = SolverState::PLACE_QUEEN;
-                    }
-                    else
-                    {
+                    //     state = SolverState::PLACE_QUEEN;
+                    // }
+                    // else
+                    // {
                         state = SolverState::PREVIOUS_COLUMN;
                     }
                 }
