@@ -159,8 +159,12 @@
     'As described in $draw_solution() function, we "hack" a class diagram by having the
     'solution count as the class name. The circle would make the hack look ugly. ^_^
     hide circle
+    allowmixing
     title Solutions to the $n-Queens problem
     $place_nth_queen(0)
+    legend top center
+        The $n-Queens problem has $solution_counter solutions.
+    end legend
 !endprocedure
 
 'input_n is the number of Queens and will be assigned via CLI.
